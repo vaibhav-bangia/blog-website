@@ -17,6 +17,29 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
+const blogsSchema = {
+  title: String,
+  content: String
+}
+const Blog = mongoose.model("Blog",blogsSchema)
+const blog1 = new Blog({
+  title: 'Blog 1 titile',
+  content: 'Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content '
+})
+const blog2 = new Blog({
+  title: 'Blog 2 Title',
+  content: 'Blog 2 Content'
+})
+const defaultBlogs = [blo1,blog2]
+// SAVE DEFAULT POSTS
+Blog.insertMany(defaultBlogs,(err)=>{
+  if(err){
+    console.log(err)
+  }else{
+    console.log("DEFAULT BLOGS INSERTED")
+  }
+})
+
 // HOME
 app.get('/', function(req, res){
   
