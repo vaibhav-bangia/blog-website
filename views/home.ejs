@@ -1,9 +1,9 @@
 <%- include('partials/header'); -%>
 <h1>Home</h1> 
 <p><%= startingContent %></p>
-
+<hr><hr>
 <% for(let p of posts ) { %>
-    <h1><%=p.title %></h1>
+    <h3><%=p.title %></h3>
     <p>
         <%=p.content.substring(0,100)%>
         <a href="/posts/<%=p._id%>" >Read More</a>
