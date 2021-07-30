@@ -14,14 +14,14 @@ const app = express();
 
 app.set('view engine', 'ejs');
 
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 const blogsSchema = {
   title: String,
   content: String
 }
-const Blog = mongoose.model("Blog",blogsSchema)
+const Blog = mongoose.model("Blog", blogsSchema)
 const blog1 = new Blog({
   title: 'Blog 1 titile',
   content: 'Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content Blog 1 content '
@@ -30,44 +30,57 @@ const blog2 = new Blog({
   title: 'Blog 2 Title',
   content: 'Blog 2 Content'
 })
-const defaultBlogs = [blo1,blog2]
+const defaultBlogs = [blog1, blog2]
 // SAVE DEFAULT POSTS
-Blog.insertMany(defaultBlogs,(err)=>{
-  if(err){
-    console.log(err)
-  }else{
-    console.log("DEFAULT BLOGS INSERTED")
-  }
-})
+// Blog.insertMany(defaultBlogs,(err)=>{
+//   if(err){
+//     console.log(err)
+//   }else{
+//     console.log("DEFAULT BLOGS INSERTED")
+//   }
+// })
 
 // HOME
-app.get('/', function(req, res){
-  
-  res.render('home.ejs',{
-    startingContent:homeStartingContent,
-    posts:posts
-  });
+app.get('/', function (req, res) {
+  // DISPLAY ALL BLOGS FROM MONGOOOSE DB
+  Blog.find({}, (err, foundBlogs) => {
+    console.log(foundBlogs)
+    res.render('home.ejs', {
+      startingContent: homeStartingContent,
+      posts: foundBlogs
+    });
+  })
+
 })
 
 // ABOUT
-app.get('/about', function(req, res){
-  res.render('about.ejs',{aboutContent:aboutContent})
+app.get('/about', function (req, res) {
+  res.render('about.ejs', { aboutContent: aboutContent })
 })
 // CONTAT 
-app.get('/contact', function(req, res){
-  res.render('contact.ejs',{contactContent:contactContent})
+app.get('/contact', function (req, res) {
+  res.render('contact.ejs', { contactContent: contactContent })
 })
 // COMPOSE
-app.get('/compose', function(req, res){
+app.get('/compose', function (req, res) {
   res.render('compose.ejs')
 })
 // COMPOSE -- POST
-app.post('/compose',function(req,res){
- 
+app.post('/compose', function (req, res) {
+
   const post = {
     title: req.body.postTitle,
     content: req.body.postBody
   };
+  const postsArr = []
+  postsArr.push(post)
+  Blog.insertMany(post, (err) => {
+    if (err) {
+      console.log(err)
+    } else {
+      console.log("Succesfully inserted 1 post")
+    }
+  })
   //console.log(post)
   posts.push(post);
   //console.log(posts)
@@ -79,15 +92,15 @@ app.post('/compose',function(req,res){
 app.get('/posts/:postName', function (req, res) {
   console.log(req.params.postName)
   var requestedTitle = _.lowerCase(req.params.postName);
-  posts.forEach(function(post){
+  posts.forEach(function (post) {
     const storedTitle = _.lowerCase(post.title);
-    if(storedTitle==requestedTitle){
+    if (storedTitle == requestedTitle) {
       console.log("MATCH FOUND")
-      res.render('post.ejs',{
-        title:post.title,
-        content:post.content
+      res.render('post.ejs', {
+        title: post.title,
+        content: post.content
       });
-    }else{
+    } else {
       console.log('not found brother!')
     }
   })
@@ -99,6 +112,6 @@ app.get('/posts/:postName', function (req, res) {
 
 
 
-app.listen(3000, function() {
+app.listen(3000, function () {
   console.log("Server started on port 3000");
 });

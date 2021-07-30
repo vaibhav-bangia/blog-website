@@ -2,11 +2,10 @@
 <h1>Home</h1> 
 <p><%= startingContent %></p>
 
-<% for(let p in posts ) { %>
+<% for(let p of posts ) { %>
     <h1><%=p.title %></h1>
     <p>
-        <%=posts.content.substring(0,100)%>
+        <%=p.content.substring(0,100)%>
         <a href="/posts/<%=p._id%>" >Read More</a>
     </p>
 <% } %>
-<%- include('partials/footer'); -%>
