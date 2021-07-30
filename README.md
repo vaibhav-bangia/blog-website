@@ -1,2 +1,2 @@
-# blog-website
+# ejs-challenge
  
