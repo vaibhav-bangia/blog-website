@@ -1,18 +1,66 @@
 // MAIN SERVER FILE
+require('dotenv').config()
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const express = require("express");
+const app = express()
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 const _ = require('lodash')
+const session = require('express-session')
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
 var posts = [];
+const mongooseEncryption = require('mongoose-encryption');
 mongoose.connect('mongodb+srv://admin-vaibhav:1234@cluster0.o34jc.mongodb.net/blogDB?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true });
 const homeStartingContent = "Welcome to The Home Page"
-// const homeStartingContent = "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing.";
+
 const aboutContent = "Welcome to about us page. This is a blogging website with Node.js backend and MongoDB database. This website is hosted by Heroku."
-// const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pellentesque. Dictumst vestibulum rhoncus est pellentesque elit ullamcorper. Non diam phasellus vestibulum lorem sed. Platea dictumst quisque sagittis purus sit. Egestas sed sed risus pretium quam vulputate dignissim suspendisse. Mauris in aliquam sem fringilla. Semper risus in hendrerit gravida rutrum quisque non tellus orci. Amet massa vitae tortor condimentum lacinia quis vel eros. Enim ut tellus elementum sagittis vitae. Mauris ultrices eros in cursus turpis massa tincidunt dui.";
+
 const contactContent = "Welcome to the contact us page. Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero.";
 
-const app = express();
+app.use(express.static("public"))
+app.set('view engine','ejs')
+app.use(bodyParser.urlencoded({
+    extended:true
+}))
+
+app.use(session({
+    secret: "Our Little Secret.",
+    resave:false,
+    saveUninitialized:false,
+}))
+
+// PASSPORT
+app.use(passport.initialize())
+app.use(passport.session())
+
+
+
+// MONGOOSE CONNECTION
+
+//Set up default mongoose connection
+var mongoDB = 'mongodb://127.0.0.1/userDB';
+mongoose.connect(mongoDB, { useNewUrlParser: true,  useUnifiedTopology: true });
+//Get the default connection 
+// basic schema to mongoose schema 
+const userSchema = new mongoose.Schema({
+    email: String,
+    password: String
+})
+
+userSchema.plugin(passportLocalMongoose)
+
+const User = new mongoose.model("User",userSchema) 
+
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+// -- END OF MONGOOSE
 
 app.set('view engine', 'ejs');
 
@@ -32,15 +80,8 @@ const blog2 = new Blog({
   title: 'Blog 2 Title',
   content: 'Blog 2 Content'
 })
-const defaultBlogs = [blog1, blog2]
-// SAVE DEFAULT POSTS
-// Blog.insertMany(defaultBlogs,(err)=>{
-//   if(err){
-//     console.log(err)
-//   }else{
-//     console.log("DEFAULT BLOGS INSERTED")
-//   }
-// })
+
+
 
 // HOME
 app.get('/', function (req, res) {
@@ -86,24 +127,6 @@ app.post('/compose', function (req, res) {
   res.redirect("/")
 })
 
-// POST NAME // EXPRESS ROUTES
-
-// app.get('/posts/:postName', function (req, res) {
-//   console.log(req.params.postName)
-//   var requestedTitle = _.lowerCase(req.params.postName);
-//   posts.forEach(function (post) {
-//     const storedTitle = _.lowerCase(post.title);
-//     if (storedTitle == requestedTitle) {
-//       console.log("MATCH FOUND")
-//       res.render('post.ejs', {
-//         title: post.title,
-//         content: post.content
-//       });
-//     } else {
-//       console.log('not found brother!')
-//     }
-//   })
-// })
 app.get("/posts/:postId", function(req, res){
   const requestedPostId = req.params.postId;
     Blog.findOne({_id: requestedPostId}, function(err, post){
@@ -114,12 +137,76 @@ app.get("/posts/:postId", function(req, res){
     });
   });
 
+// AUTHENTICATION   
+
+
+// REGISTER
+app.get('/register',(req,res)=>{
+  res.render('register.ejs')
+})
+// LOGIN
+app.get('/login',(req,res)=>{
+  res.render('login.ejs')
+})
+// LOGUT - DEAUTHENTICATE -- CLOSE SESSION
+app.get("/logout",(req,res)=>{
+  req.logOut()
+  res.redirect('/')
+})
+// SECRETS
+app.get("/secrets",(req,res)=>{
+  if(req.isAuthenticated()){
+      res.render("secrets")
+  }else{
+      res.redirect("/login")
+  }
+})
+
+
+// POST REQ REGISTER-- CREATE A NEW USER IN DB
+app.post('/register',(req,res)=>{
+  User.register({username:req.body.username}, req.body.password, (err,user)=>{
+      if(err){
+          console.log(user)
+          res.redirect('/register')
+      }else{
+          passport.authenticate("local")(req,res,()=>{
+              res.redirect("/secrets")
+          })
+      }
+  })
+})
+
+// POST REQ -- LOGIN
+app.post('/login',(req,res)=>{
+  const user = new User({
+      username: req.body.username,
+      password: req.body.password
+  })
+  // this method comes from passport
+  req.login(user,(err)=>{
+      if(err){
+          console.log(err)
+      }else{
+          passport.authenticate("local")(req,res,()=>{
+              res.redirect("/secrets")
+          })
+      }
+  })
+})
 
 
 
 
+
+
+
+
+
+
+
+var port = process.env.PORT
   
-  let port = process.env.PORT
   if(port ==null || port ==""){
     port = 3000
   }
